@@ -1,0 +1,148 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; color: #333; }
+.app { max-width: 1200px; margin: 0 auto; padding: 20px; }
+header { margin-bottom: 24px; }
+header h1 { margin-bottom: 12px; }
+.tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+.tabs button { padding: 10px 20px; border: 1px solid #ddd; background: #fff; border-radius: 6px 6px 0 0; cursor: pointer; font-size: 14px; font-weight: 500; position: relative; transition: all 0.2s; }
+.tabs button:hover { background: #f5f5f5; }
+.tabs button.active { background: #333; color: #fff; border-color: #333; }
+.tabs button .tab-badge { margin-left: 8px; padding: 2px 8px; background: #ff9800; color: #fff; border-radius: 10px; font-size: 11px; font-weight: 600; }
+.tabs button.active .tab-badge { background: #fff; color: #333; }
+.tab-content { background: #fff; border: 1px solid #ddd; border-radius: 0 8px 8px 8px; padding: 20px; min-height: 400px; }
+.center { text-align: center; padding: 40px; color: #666; }
+.error { color: #c00; }
+.success { color: #060; margin-top: 8px; }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; }
+.card { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 16px; cursor: pointer; transition: box-shadow 0.15s; }
+.card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
+.card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.card-header .name { font-weight: 600; font-size: 16px; }
+.card-body p { font-size: 13px; margin-bottom: 4px; color: #555; }
+.card-body .biomarkers { font-size: 12px; color: #777; margin-top: 4px; }
+
+.badge { padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+.badge.orange { background: #fff3e0; color: #e65100; }
+.badge.green { background: #e8f5e9; color: #2e7d32; }
+.badge.blue { background: #e3f2fd; color: #1565c0; }
+.badge.red { background: #ffebee; color: #c62828; }
+
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 100; }
+.modal { background: #fff; border-radius: 8px; padding: 24px; max-width: 600px; width: 90%; max-height: 85vh; overflow-y: auto; position: relative; }
+.modal-close { position: absolute; top: 12px; right: 16px; background: none; border: none; font-size: 24px; cursor: pointer; color: #999; }
+.modal h2 { margin-bottom: 16px; }
+.modal h3 { margin: 12px 0 8px; }
+.modal hr { border: none; border-top: 1px solid #eee; margin: 16px 0; }
+
+.detail-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.detail-table td { padding: 4px 8px; border-bottom: 1px solid #f0f0f0; }
+.detail-table td:first-child { font-weight: 600; width: 130px; color: #666; }
+
+.biomarker-list { margin-top: 12px; font-size: 13px; }
+.biomarker-list ul { margin-top: 4px; padding-left: 20px; columns: 2; }
+.biomarker-list li { margin-bottom: 2px; }
+
+.upload-area { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+.upload-area input[type="file"] { flex: 1; }
+.upload-area button { padding: 8px 16px; background: #333; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+.upload-area button:disabled { background: #999; cursor: not-allowed; }
+
+/* Pending Bookings */
+.header-pending-badge { margin-left: 12px; padding: 4px 10px; background: #ff9800; color: #fff; border-radius: 12px; font-size: 12px; font-weight: 600; }
+.pending-section { padding: 0; }
+.pending-section h2 { font-size: 18px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+.pending-count { background: #ff9800; color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 12px; }
+.pending-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
+.pending-card { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 12px; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.pending-info { flex: 1; }
+.pending-info p { font-size: 13px; margin-bottom: 3px; }
+.pending-info .booking-time { font-size: 11px; color: #888; margin-top: 4px; }
+.pending-actions { display: flex; flex-direction: column; gap: 6px; }
+.approve-btn { padding: 6px 14px; background: #4caf50; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; }
+.approve-btn:hover { background: #388e3c; }
+.approve-btn:disabled { background: #a5d6a7; cursor: not-allowed; }
+.reject-btn { padding: 6px 14px; background: #f44336; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; }
+.reject-btn:hover { background: #c62828; }
+.reject-btn:disabled { background: #ef9a9a; cursor: not-allowed; }
+
+/* Rescheduled & Cancelled */
+.pending-info-header { display: flex; align-items: center; gap: 8px; margin-bottom: 2px; }
+.pending-card-rescheduled { border-left: 3px solid #1565c0; }
+.previous-booking { font-size: 12px; color: #1565c0; font-style: italic; }
+.cancelled-at { font-size: 12px; color: #c62828; }
+.card-badges { display: flex; gap: 6px; align-items: center; }
+.cancelled-card { border-left: 3px solid #c62828; cursor: default; }
+.cancelled-card:hover { box-shadow: none; }
+.cancelled-section { padding: 0; }
+.tab-badge-red { background: #f44336 !important; }
+.tabs button.active .tab-badge-red { background: #ffcdd2 !important; color: #c62828 !important; }
+
+/* Pending Content Approvals */
+.approvals-section { padding: 0; }
+.approvals-section h2 { font-size: 18px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+.approved-results-section { padding: 0; }
+.approvals-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+.approval-card { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 12px; cursor: pointer; }
+.approval-card:hover { box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+.approval-card p { font-size: 13px; margin-bottom: 3px; }
+.approval-card .booking-time { font-size: 11px; color: #888; margin-top: 4px; }
+.review-btn { margin-top: 8px; padding: 6px 12px; background: #1976d2; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+.review-btn:hover { background: #1565c0; }
+
+/* Review Modal */
+.review-modal { max-width: 800px; }
+.review-section { margin-bottom: 16px; }
+.review-section h3 { font-size: 14px; margin-bottom: 6px; color: #333; }
+.review-section p { font-size: 13px; margin-bottom: 4px; }
+.review-section a { color: #1976d2; }
+.review-section textarea { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-family: monospace; font-size: 12px; resize: vertical; }
+.review-actions { display: flex; gap: 10px; margin-top: 16px; }
+.save-btn { padding: 8px 16px; background: #1976d2; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+.save-btn:hover { background: #1565c0; }
+.save-btn:disabled { background: #90caf9; cursor: not-allowed; }
+
+/* Biomarker Results Table */
+.biomarker-results-table { max-height: 300px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; margin-top: 8px; }
+.biomarker-results-table table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.biomarker-results-table th { background: #f5f5f5; padding: 8px 6px; text-align: left; font-weight: 600; border-bottom: 1px solid #ddd; position: sticky; top: 0; }
+.biomarker-results-table td { padding: 6px; border-bottom: 1px solid #eee; }
+.biomarker-results-table tr:hover { background: #f9f9f9; }
+.biomarker-results-table tr.flagged { background: #fff8e1; }
+.biomarker-results-table tr.flagged:hover { background: #ffecb3; }
+.biomarker-results-table .status-normal { color: #2e7d32; }
+.biomarker-results-table .status-out-of-range { color: #c62828; font-weight: 600; }
+.biomarker-results-table .status-high { color: #c62828; font-weight: 600; }
+.biomarker-results-table .status-low { color: #e65100; font-weight: 600; }
+.biomarker-results-table .status-borderline { color: #f9a825; }
+.biomarker-results-table .status-unknown { color: #757575; }
+
+/* Approved Cards */
+.approval-card.approved { border-left: 3px solid #4caf50; }
+.approval-card .badge { margin-top: 8px; display: inline-block; }
+.approved-section { padding: 0; }
+
+/* Content Preview */
+.content-preview { background: #f5f5f5; border: 1px solid #ddd; border-radius: 4px; padding: 12px; font-size: 13px; white-space: pre-wrap; word-break: break-word; max-height: 200px; overflow-y: auto; }
+
+/* Empty state in tabs */
+.tab-content .center { padding: 60px 20px; color: #888; }
+
+/* Header layout */
+.header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.header-top h1 { margin-bottom: 0; }
+.logout-btn { padding: 6px 14px; background: none; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; font-size: 13px; color: #666; }
+.logout-btn:hover { background: #f5f5f5; color: #333; }
+
+/* Login page */
+.login-container { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #f5f5f5; }
+.login-form { background: #fff; padding: 40px; border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,0.1); width: 100%; max-width: 380px; }
+.login-form h1 { margin-bottom: 4px; font-size: 24px; }
+.login-subtitle { color: #888; font-size: 14px; margin-bottom: 24px; }
+.login-form label { display: block; font-size: 13px; font-weight: 600; color: #555; margin-bottom: 16px; }
+.login-form input { display: block; width: 100%; margin-top: 4px; padding: 10px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; }
+.login-form input:focus { outline: none; border-color: #333; }
+.login-form button { width: 100%; padding: 10px; background: #333; color: #fff; border: none; border-radius: 4px; font-size: 14px; font-weight: 500; cursor: pointer; margin-top: 8px; }
+.login-form button:hover { background: #222; }
+.login-form button:disabled { background: #999; cursor: not-allowed; }
+.login-form .error { margin-top: 12px; margin-bottom: 0; font-size: 13px; }
