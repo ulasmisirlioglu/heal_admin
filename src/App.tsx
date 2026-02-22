@@ -182,14 +182,14 @@ function App() {
             {loading && <p className="center">Loading...</p>}
             {error && <p className="center error">{error}</p>}
             {!loading && !error && (
-              <ApprovedBookings bookings={bookings} onSelect={setSelected} />
+              <ApprovedBookings bookings={bookings} onSelect={setSelected} onDeleted={fetchAll} />
             )}
           </>
         );
       case 'cancelled-bookings':
-        return <CancelledBookings bookings={cancelledBookings} />;
+        return <CancelledBookings bookings={cancelledBookings} onDeleted={fetchAll} />;
       case 'approved-results':
-        return <ApprovedResults />;
+        return <ApprovedResults onDeleted={fetchAll} />;
       default:
         return null;
     }

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import ConfirmDeleteDialog from './ConfirmDeleteDialog';
 
 interface ApprovedContent {
   test_result: {
@@ -27,11 +28,12 @@ interface ApprovedContent {
   } | null;
 }
 
-export default function ApprovedResults() {
+export default function ApprovedResults({ onDeleted }: { onDeleted: () => void }) {
   const [approvedContent, setApprovedContent] = useState<ApprovedContent[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [selectedContent, setSelectedContent] = useState<ApprovedContent | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
   const fetchApprovedContent = async () => {
     setLoading(true);
@@ -65,6 +67,7 @@ export default function ApprovedResults() {
       <div className="approvals-grid">
         {approvedContent.map(pc => (
           <div key={pc.test_result.id} className="approval-card approved" onClick={() => setSelectedContent(pc)}>
+            <button className="card-delete-btn" onClick={(e) => { e.stopPropagation(); setDeleteTarget(pc.test_result.id); }}>Delete</button>
             <p><strong>User:</strong> User {pc.test_result.user_id.slice(0, 6)}</p>
             <p><strong>Test Date:</strong> {pc.test_result.test_date}</p>
             <p><strong>Biomarkers:</strong> {biomarkerCount(pc.test_result.results)}</p>
@@ -73,6 +76,24 @@ export default function ApprovedResults() {
           </div>
         ))}
       </div>
+
+      {deleteTarget && (
+        <ConfirmDeleteDialog
+          itemLabel="this approved result"
+          onConfirm={async () => {
+            const res = await fetch('/api/delete-test-result', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ test_result_id: deleteTarget }),
+            });
+            if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+            setDeleteTarget(null);
+            fetchApprovedContent();
+            onDeleted();
+          }}
+          onCancel={() => setDeleteTarget(null)}
+        />
+      )}
 
       {selectedContent && (
         <div className="modal-overlay" onClick={() => setSelectedContent(null)}>

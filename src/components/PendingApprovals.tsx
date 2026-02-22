@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getAuthHeaders } from '../supabaseClient';
+import ConfirmDeleteDialog from './ConfirmDeleteDialog';
 
 
 interface PendingContent {
@@ -41,8 +42,10 @@ export default function PendingApprovals({ onApproved }: Props) {
   const [editedSummary, setEditedSummary] = useState('');
   const [editedActionPlan, setEditedActionPlan] = useState('');
   const [editedObjectives, setEditedObjectives] = useState('');
+  const [editedBiomarkers, setEditedBiomarkers] = useState<Record<string, any>>({});
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
   const fetchPendingContent = async () => {
     setLoading(true);
@@ -70,6 +73,7 @@ export default function PendingApprovals({ onApproved }: Props) {
     setEditedSummary(content.summary?.summary_text || '');
     setEditedActionPlan(content.action_plan?.plan_data ? JSON.stringify(content.action_plan.plan_data, null, 2) : '');
     setEditedObjectives(content.daily_objectives?.objectives ? JSON.stringify(content.daily_objectives.objectives, null, 2) : '');
+    setEditedBiomarkers(JSON.parse(JSON.stringify(content.test_result.results || {})));
     setMessage('');
   };
 
@@ -103,6 +107,21 @@ export default function PendingApprovals({ onApproved }: Props) {
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.error || 'Failed to save');
+      }
+
+      // Update biomarker results via local admin backend
+      const bioRes = await fetch('/api/update-content', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          test_result_id: selectedContent.test_result.id,
+          biomarker_results: editedBiomarkers,
+        }),
+      });
+
+      if (!bioRes.ok) {
+        const bioData = await bioRes.json();
+        throw new Error(bioData.error || 'Failed to save biomarker edits');
       }
 
       setMessage('Edits saved successfully!');
@@ -155,6 +174,7 @@ export default function PendingApprovals({ onApproved }: Props) {
       <div className="approvals-grid">
         {pendingContent.map(pc => (
           <div key={pc.test_result.id} className="approval-card" onClick={() => openReview(pc)}>
+            <button className="card-delete-btn" onClick={(e) => { e.stopPropagation(); setDeleteTarget(pc.test_result.id); }}>Delete</button>
             <p><strong>User:</strong> User {pc.test_result.user_id.slice(0, 6)}</p>
             <p><strong>Test Date:</strong> {pc.test_result.test_date}</p>
             <p><strong>Biomarkers:</strong> {biomarkerCount(pc.test_result.results)}</p>
@@ -163,6 +183,24 @@ export default function PendingApprovals({ onApproved }: Props) {
           </div>
         ))}
       </div>
+
+      {deleteTarget && (
+        <ConfirmDeleteDialog
+          itemLabel="this test result"
+          onConfirm={async () => {
+            const res = await fetch('/api/delete-test-result', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ test_result_id: deleteTarget }),
+            });
+            if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+            setDeleteTarget(null);
+            fetchPendingContent();
+            onApproved();
+          }}
+          onCancel={() => setDeleteTarget(null)}
+        />
+      )}
 
       {selectedContent && (
         <div className="modal-overlay" onClick={() => setSelectedContent(null)}>
@@ -173,7 +211,7 @@ export default function PendingApprovals({ onApproved }: Props) {
             <div className="review-section">
               <h3>Test Info</h3>
               <p><strong>Test Date:</strong> {selectedContent.test_result.test_date}</p>
-              <p><strong>Biomarkers:</strong> {biomarkerCount(selectedContent.test_result.results)}</p>
+              <p><strong>Biomarkers:</strong> {Object.keys(editedBiomarkers).length}</p>
             </div>
 
             <div className="review-section">
@@ -184,24 +222,91 @@ export default function PendingApprovals({ onApproved }: Props) {
                     <tr>
                       <th>Biomarker</th>
                       <th>Value</th>
+                      <th>Unit</th>
                       <th>Range</th>
                       <th>Status</th>
+                      <th></th>
                     </tr>
                   </thead>
                   <tbody>
-                    {Object.entries(selectedContent.test_result.results || {}).map(([name, data]: [string, any]) => (
+                    {Object.entries(editedBiomarkers).map(([name, data]: [string, any]) => (
                       <tr key={name} className={data.status === 'in-range' ? '' : 'flagged'}>
                         <td>{name}</td>
-                        <td>{data.value} {data.unit || ''}</td>
-                        <td>{data.reference_range || data.referenceRange || '—'}</td>
-                        <td className={`status-${data.status === 'in-range' ? 'normal' : 'out-of-range'}`}>
-                          {data.status === 'in-range' ? 'Normal' : data.status === 'out-of-range' ? 'Out of Range' : (data.status || '—')}
+                        <td>
+                          <input
+                            type="number"
+                            className="bio-input bio-input-value"
+                            value={data.value ?? ''}
+                            onChange={e => setEditedBiomarkers(prev => ({
+                              ...prev,
+                              [name]: { ...prev[name], value: e.target.value === '' ? '' : Number(e.target.value) }
+                            }))}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="text"
+                            className="bio-input bio-input-unit"
+                            value={data.unit || ''}
+                            onChange={e => setEditedBiomarkers(prev => ({
+                              ...prev,
+                              [name]: { ...prev[name], unit: e.target.value }
+                            }))}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="text"
+                            className="bio-input bio-input-range"
+                            value={data.reference_range || data.referenceRange || ''}
+                            onChange={e => setEditedBiomarkers(prev => ({
+                              ...prev,
+                              [name]: { ...prev[name], reference_range: e.target.value }
+                            }))}
+                          />
+                        </td>
+                        <td>
+                          <select
+                            className="bio-input bio-input-status"
+                            value={data.status || ''}
+                            onChange={e => setEditedBiomarkers(prev => ({
+                              ...prev,
+                              [name]: { ...prev[name], status: e.target.value }
+                            }))}
+                          >
+                            <option value="in-range">Normal</option>
+                            <option value="out-of-range">Out of Range</option>
+                            <option value="borderline">Borderline</option>
+                          </select>
+                        </td>
+                        <td>
+                          <button
+                            className="bio-delete-btn"
+                            title="Remove biomarker"
+                            onClick={() => setEditedBiomarkers(prev => {
+                              const next = { ...prev };
+                              delete next[name];
+                              return next;
+                            })}
+                          >&times;</button>
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
+              <button
+                className="bio-add-btn"
+                onClick={() => {
+                  const newName = prompt('Biomarker name:');
+                  if (newName && newName.trim() && !editedBiomarkers[newName.trim()]) {
+                    setEditedBiomarkers(prev => ({
+                      ...prev,
+                      [newName.trim()]: { value: 0, unit: '', reference_range: '', status: 'in-range', system: '', explanation: '' }
+                    }));
+                  }
+                }}
+              >+ Add Biomarker</button>
             </div>
 
             <div className="review-section">

@@ -259,8 +259,16 @@ app.get('/api/pending-content', async (req, res) => {
 // ============= PATCH /api/update-content =============
 app.patch('/api/update-content', async (req, res) => {
   try {
-    const { test_result_id, summary, action_plan, daily_objectives } = req.body;
+    const { test_result_id, summary, action_plan, daily_objectives, biomarker_results } = req.body;
     if (!test_result_id) return res.status(400).json({ error: 'Missing test_result_id' });
+
+    // Update biomarker results if provided
+    if (biomarker_results !== undefined) {
+      await supabase
+        .from('test_results')
+        .update({ results: biomarker_results, updated_at: new Date().toISOString() })
+        .eq('id', test_result_id);
+    }
 
     // Update summary if provided
     if (summary !== undefined) {
@@ -506,8 +514,12 @@ Rules:
     });
 
     if (!aiResponse.ok) {
+      const errorText = await aiResponse.text();
+      console.error(`[${jobId}] ❌ OpenRouter API Error:`, aiResponse.status, errorText);
       await supabase.from('test_results').update({ status: 'failed' }).eq('id', testResult.id);
-      return res.status(500).json({ error: 'AI extraction failed' });
+      let detail = '';
+      try { detail = JSON.parse(errorText)?.error?.message || errorText; } catch { detail = errorText; }
+      return res.status(500).json({ error: 'AI extraction failed', detail, status: aiResponse.status });
     }
 
     const aiData = await aiResponse.json();
@@ -595,6 +607,58 @@ Rules:
     res.json({ success: true, testResultId: testResult.id, biomarkersCount: Object.keys(resultsJson).length });
   } catch (error) {
     return res.status(500).json({ error: error.message || 'Unknown error occurred', jobId });
+  }
+});
+
+// ============= POST /api/delete-booking =============
+app.post('/api/delete-booking', async (req, res) => {
+  try {
+    const { booking_id } = req.body;
+    if (!booking_id) return res.status(400).json({ error: 'Missing booking_id' });
+
+    const { error } = await supabase
+      .from('booked_tests')
+      .delete()
+      .eq('id', booking_id);
+
+    if (error) return res.status(500).json({ error: error.message });
+
+    res.json({ success: true, booking_id });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============= POST /api/delete-test-result =============
+app.post('/api/delete-test-result', async (req, res) => {
+  try {
+    const { test_result_id } = req.body;
+    if (!test_result_id) return res.status(400).json({ error: 'Missing test_result_id' });
+
+    // Get action_plan IDs for daily_objectives deletion
+    const { data: actionPlans } = await supabase
+      .from('action_plans')
+      .select('id')
+      .eq('test_result_id', test_result_id);
+    const actionPlanIds = (actionPlans || []).map(ap => ap.id);
+
+    // Cascade delete: daily_objectives -> action_plans -> health_summaries -> test_result
+    if (actionPlanIds.length > 0) {
+      await supabase.from('daily_objectives').delete().in('action_plan_id', actionPlanIds);
+    }
+    await supabase.from('action_plans').delete().eq('test_result_id', test_result_id);
+    await supabase.from('health_summaries').delete().eq('test_result_id', test_result_id);
+
+    const { error } = await supabase
+      .from('test_results')
+      .delete()
+      .eq('id', test_result_id);
+
+    if (error) return res.status(500).json({ error: error.message });
+
+    res.json({ success: true, test_result_id });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 

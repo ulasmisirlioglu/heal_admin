@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { getAuthHeaders } from '../supabaseClient';
+import ConfirmDeleteDialog from './ConfirmDeleteDialog';
 
 interface PendingBooking {
   id: string;
@@ -31,6 +32,7 @@ const B2C_API_URL = import.meta.env.VITE_B2C_API_URL;
 export default function PendingBookings({ bookings, onApproved, onRejected }: Props) {
   const [loading, setLoading] = useState<string | null>(null);
   const [message, setMessage] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
   const handleApprove = async (bookingId: string) => {
     setLoading(bookingId);
@@ -114,10 +116,33 @@ export default function PendingBookings({ bookings, onApproved, onRejected }: Pr
               >
                 Reject
               </button>
+              <button
+                className="delete-btn"
+                onClick={() => setDeleteTarget(b.id)}
+                disabled={loading === b.id}
+              >
+                Delete
+              </button>
             </div>
           </div>
         ))}
       </div>
+      {deleteTarget && (
+        <ConfirmDeleteDialog
+          itemLabel="this booking"
+          onConfirm={async () => {
+            const res = await fetch('/api/delete-booking', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ booking_id: deleteTarget }),
+            });
+            if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+            setDeleteTarget(null);
+            onRejected();
+          }}
+          onCancel={() => setDeleteTarget(null)}
+        />
+      )}
     </div>
   );
 }

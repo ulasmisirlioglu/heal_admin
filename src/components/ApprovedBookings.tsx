@@ -1,11 +1,16 @@
+import { useState } from 'react';
 import { BookedTest } from '../App';
+import ConfirmDeleteDialog from './ConfirmDeleteDialog';
 
 interface Props {
   bookings: BookedTest[];
   onSelect: (b: BookedTest) => void;
+  onDeleted: () => void;
 }
 
-export default function ApprovedBookings({ bookings, onSelect }: Props) {
+export default function ApprovedBookings({ bookings, onSelect, onDeleted }: Props) {
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+
   // Sort by booking date (newest first)
   const sortedBookings = [...bookings].sort((a, b) => {
     const da = a.booking_details?.date || '';
@@ -22,6 +27,7 @@ export default function ApprovedBookings({ bookings, onSelect }: Props) {
       <div className="grid">
         {sortedBookings.map(b => (
           <div key={b.id} className="card" onClick={() => onSelect(b)}>
+            <button className="card-delete-btn" onClick={(e) => { e.stopPropagation(); setDeleteTarget(b.id); }}>Delete</button>
             <div className="card-header">
               <span className="name">User {b.user_id.slice(0, 6)}</span>
               <div className="card-badges">
@@ -46,6 +52,22 @@ export default function ApprovedBookings({ bookings, onSelect }: Props) {
           </div>
         ))}
       </div>
+      {deleteTarget && (
+        <ConfirmDeleteDialog
+          itemLabel="this booking"
+          onConfirm={async () => {
+            const res = await fetch('/api/delete-booking', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ booking_id: deleteTarget }),
+            });
+            if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+            setDeleteTarget(null);
+            onDeleted();
+          }}
+          onCancel={() => setDeleteTarget(null)}
+        />
+      )}
     </div>
   );
 }
